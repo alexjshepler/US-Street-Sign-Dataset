@@ -5,6 +5,7 @@ download.txt
 Datasets/fully/*
 Datasets/partially/*
 *.jpg
+*.MP4
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
