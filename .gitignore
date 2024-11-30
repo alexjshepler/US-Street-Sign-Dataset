@@ -4,6 +4,7 @@ download.txt
 *.aria2
 Datasets/fully/*
 Datasets/partially/*
+*.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
