@@ -21,11 +21,21 @@ def filetype(file) -> str:
         return 'undefined'
 
 # Determine if the file is an image
-def is_image(file) -> bool:
+def is_image(file: str) -> bool:
     ext = os.path.splitext(file)[1]
     ext.lower()
     
     if ext in IMAGE_EXT:
+        return True
+    else:
+        return False
+    
+# Determine if the file is a video
+def is_video(file: str) -> bool:
+    ext = os.path.splitext(file)[1]
+    ext.lower()
+    
+    if ext in VIDEO_EXT:
         return True
     else:
         return False
