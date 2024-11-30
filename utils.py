@@ -23,7 +23,7 @@ def filetype(file) -> str:
 # Determine if the file is an image
 def is_image(file: str) -> bool:
     ext = os.path.splitext(file)[1]
-    ext.lower()
+    ext = ext.lower()
     
     if ext in IMAGE_EXT:
         return True
@@ -33,7 +33,7 @@ def is_image(file: str) -> bool:
 # Determine if the file is a video
 def is_video(file: str) -> bool:
     ext = os.path.splitext(file)[1]
-    ext.lower()
+    ext = ext.lower()
     
     if ext in VIDEO_EXT:
         return True
