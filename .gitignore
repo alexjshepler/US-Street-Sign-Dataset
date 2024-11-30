@@ -1,5 +1,7 @@
 # Project Specific
 download.txt
+*.zip
+*.aria2
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
