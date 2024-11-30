@@ -1,9 +1,12 @@
 import os
+import concurrent.futures
 
 from tqdm import tqdm
 
 import from_dataset
 import from_videos
+
+import utils
 
 # Input Directories
 DATASET_DIR = 'Datasets'
@@ -11,8 +14,9 @@ VIDEO_DIR = 'Videos'
 
 # Output Directories
 IMAGE_DIR = 'Images'
-UNPROCESSED_DIR = 'Images/Unprocessed'
 TEMP_DIR = 'Images/temp'
+UNPROCESSED_DIR = 'Images/Unprocessed'
+PROCESSED_DIR = 'Images/Processed'
 
 # Move files from dataset to unprocessed
 def dataset_images():
@@ -29,9 +33,13 @@ def video_frames():
             pbar.update(1)  
     
 # Move temp files to unprocessed
+def move_temp():
+    from_videos.move_temp(TEMP_DIR, UNPROCESSED_DIR)
 
 # Remove similar images
-
+def remove_similar():
+    utils.image_hash_dict(UNPROCESSED_DIR)
+    
 # Rename images
 
 def main():
@@ -39,7 +47,14 @@ def main():
     dataset_images()
     
     print('\n=================\nProcessing Videos\n=================\n')
-    video_frames()
+    # video_frames()
     
+    print('\n=============\nMoving Frames\n=============\n')
+    move_temp()
+    
+    print('\n=======================\nRemoving Similar Images\n=======================\n')
+    remove_similar()
+    
+        
 if __name__ == '__main__':
     main()
