@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        img {
+            max-height: 85vh;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>(j: save | f: discard | u: unprocess | arrow keys navigation)</h1>
+    <div id="output">Press Next or Previous to navigate through the images.</div>
+    <img id="display-image" src="" alt="Image will appear here">
+    <div class="controls">
+        <button id="prev-button">Previous</button>
+        <button id="next-button">Next</button>
+    </div>
+
+    <script>
+        let currentIndex = 0; // Track the current image index
+
+        // Function to load an image from the server
+        function loadImage(index) {
+            fetch(`/image/${index}`)
+                .then(response => response.json())
+                .then(data => {
+                    const outputDiv = document.getElementById('output');
+                    const imageElement = document.getElementById('display-image');
+
+                    if (data.image_url) {
+                        outputDiv.textContent = data.message;
+                        imageElement.src = data.image_url; // Update the image
+                    } else {
+                        outputDiv.textContent = data.message;
+                        imageElement.src = ""; // Clear the image if no more images
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Load the first image when the page loads
+        loadImage(currentIndex);
+
+        // Add event listeners for the buttons
+        document.getElementById('prev-button').addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                loadImage(currentIndex);
+            }
+        });
+
+        document.getElementById('next-button').addEventListener('click', () => {
+            currentIndex++;
+            loadImage(currentIndex);
+        });
+
+        document.addEventListener('keydown', function (event) {
+            const key = event.key; // Get the key that was pressed
+            console.log(key);
+            switch(key){
+                case 'j':
+                case 'f':
+                case 'k':
+                case 'ArrowRight':
+                    currentIndex++;
+                    loadImage(currentIndex)
+                    break;
+                case 'd':
+                case 'ArrowLeft':
+                    currentIndex--;
+                    loadImage(currentIndex)
+                    break;
+            }
+                // Send the keypress to the Flask backend
+            fetch('/keypress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ key: key })
+            })
+                .then(response => response.json())
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+    </script>
+</body>
+
+</html>

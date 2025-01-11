@@ -1,60 +1,127 @@
 import os
-import concurrent.futures
+import shutil
+
+from Image import Image
 
 from tqdm import tqdm
+from flask import Flask, request, jsonify
 
-import from_dataset
-import from_videos
+app = Flask(__name__)
 
-import utils
-
-# Input Directories
+# Define directories
 DATASET_DIR = 'Datasets'
-VIDEO_DIR = 'Videos'
+UNPROCESSED_DIR = "static/images/unprocessed"
+SAVED_DIR = "static/images/saved"
+DISCARDED_DIR = "static/images/discarded"
 
-# Output Directories
-IMAGE_DIR = 'Images'
-TEMP_DIR = 'Images/temp'
-UNPROCESSED_DIR = 'Images/Unprocessed'
-PROCESSED_DIR = 'Images/Processed'
+# Global variable to store image paths
+images = []
+curr_index = 0
+# ========== Flask Functions ==========
 
-# Move files from dataset to unprocessed
-def dataset_images():
-    images = from_dataset.get_images(DATASET_DIR)
-    from_dataset.move_images(images, UNPROCESSED_DIR)
+
+@app.route("/")
+def index():
+    # Serve the main HTML file
+    return app.send_static_file("index.html")
+
+
+@app.route("/image/<int:index>", methods=["GET"])
+def get_image(index):
+    global images, curr_index
+
+    # Validate the index
+    if index < 0 or index >= len(images):
+        return jsonify({"message": "No more images", "image_url": None})
+
+    # Get the image file path
+    image_file = images[index].path
+    curr_index = index
+    image_url = f"/{image_file}"  # Path relative to `static`
+
+    return jsonify(
+        {
+            "message": f"Showing image {index + 1} of {len(images)}",
+            "image_url": image_url,
+        }
+    )
+
+
+@app.route("/keypress", methods=["POST"])
+def keypress():
+    data = request.json
+    key = data.get("key")
+
+    # Log the key press for debugging
+    print(f"{key} | Current Index: {curr_index:09d} | Image Path: {images[curr_index].path}")
+
+    if key.lower() == 'j':
+        images[curr_index].save()
         
-# Convert videos to frames and save in temp files
-def video_frames():
-    videos = from_videos.get_videos(VIDEO_DIR)
-    
-    with tqdm(desc='Processing Videos', total=len(videos), unit='Videos') as pbar:
-        for i, video in enumerate(videos):
-            from_videos.process_video(video, os.path.join(TEMP_DIR, f'{i:04}'))
-            pbar.update(1)  
-    
-# Move temp files to unprocessed
-def move_temp():
-    from_videos.move_temp(TEMP_DIR, UNPROCESSED_DIR)
+    if key.lower() == 'f':
+        images[curr_index].discard()
+        
+    if key.lower() == 'u':
+        images[curr_index].unprocess()
+        
+    # Add your custom processing logic here
+    result = "Key processed successfully"
 
-# Remove similar images
-def remove_similar():
-    utils.image_hash_dict(UNPROCESSED_DIR)
+    return jsonify({"message": "Key processed", "result": result})
+
+
+# ========== Main Functions ==========
+
+
+def check_dirs():
+    """Ensure the required directories exist."""
+    if not os.path.exists(SAVED_DIR):
+        os.makedirs(SAVED_DIR)
+
+    if not os.path.exists(DISCARDED_DIR):
+        os.makedirs(DISCARDED_DIR)
+
+def move_dataset_images():
+    index = 0
+    total_images = 0
     
-# Rename images
+    for root, _, files in os.walk(DATASET_DIR):
+        for file in files:
+            if os.path.splitext(file)[1] == '.jpg':
+                total_images += 1
+    
+    with tqdm(desc='Moving Images', total=total_images, unit='Image') as pbar:
+    
+        for root, _, files in os.walk(DATASET_DIR):
+            for file in files:
+                if os.path.splitext(file)[1] == '.jpg':
+                    while os.path.exists(os.path.join(UNPROCESSED_DIR, f'{index:09d}.jpg')):
+                        index += 1
+                    shutil.move(os.path.join(root, file), os.path.join(UNPROCESSED_DIR, f'{index:09d}.jpg'))
+                    index += 1
+                    pbar.update(1)
+
+def get_images():
+    """Retrieve all .jpg image paths from the dataset directory."""
+    image_paths = []
+
+    for root, _, files in os.walk(UNPROCESSED_DIR):
+        for file in files:
+            if os.path.splitext(file)[1].lower() == ".jpg":
+                # Store paths relative to `static/`
+                image_paths.append(Image(os.path.join(root, file), file))
+
+    return image_paths
+
 
 def main():
-    print('\n==========================\nMoving images from dataset\n==========================\n')
-    dataset_images()
-    
-    print('\n=================\nProcessing Videos\n=================\n')
-    # video_frames()
-    
-    print('\n=============\nMoving Frames\n=============\n')
-    move_temp()
-    
-    print('\n=======================\nRemoving Similar Images\n=======================\n')
-    remove_similar()
-    
-        
-if __name__ == '__main__':
+    """Main setup function."""
+    global images
+
+    check_dirs()  # Ensure directories exist
+    move_dataset_images()
+    images = get_images()  # Load images into the global list
+
+if __name__ == "__main__":
     main()
+    app.run(debug=True)
